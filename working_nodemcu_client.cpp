@@ -1,50 +1,48 @@
 #include <Arduino.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
-
 #include <SocketIoClient.h>
-
-#define USE_SERIAL Serial
 
 ESP8266WiFiMulti WiFiMulti;
 SocketIoClient webSocket;
 
-void event(const char * payload, size_t length) {
-  USE_SERIAL.printf("got message: %s\n", payload);
-//  webSocket.emit("hello", "Hello from nodemcu");
-  webSocket.emit("hello","\"Hi server\"");
+const char * CLIENTID = "\"bs4d20djs837\"";
+const char * SERVER = "b74def3d.ngrok.io";
+const char * SSID = "JOBS";
+const char * PASSWORD = "bhavik6666";
+boolean isHandshakDone = false;
+
+void authHandshake(const char * payload, size_t length) {
+  Serial.printf("authHandshake: %s\n", payload);
+  isHandshakDone = true;
+}
+void socket_Connected(const char * payload, size_t length) {
+  Serial.println("Socket.IO Connected!");
+  webSocket.emit("join", CLIENTID);
 }
 
-
 void setup() {
-    USE_SERIAL.begin(115200);
+    Serial.begin(115200);
+    Serial.setDebugOutput(true);
+    Serial.println();
 
-    USE_SERIAL.setDebugOutput(true);
+    for(uint8_t t = 4; t > 0; t--) {
+        Serial.printf("[SETUP] BOOT WAIT %d...\n", t);
+        Serial.flush();
+        delay(1000);
+    }
 
-    USE_SERIAL.println();
-    USE_SERIAL.println();
-    USE_SERIAL.println();
-
-      for(uint8_t t = 4; t > 0; t--) {
-          USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
-          USE_SERIAL.flush();
-          delay(1000);
-      }
-
-    WiFiMulti.addAP("JOBS", "bhavik6666");
-
+    WiFiMulti.addAP(SSID, PASSWORD);
     while(WiFiMulti.run() != WL_CONNECTED) {
         delay(100);
     }
-    webSocket.on("seconds", event);
-    webSocket.on("event", event);
-    webSocket.begin("2b612e3d.ngrok.io");
-//    webSocket.emit("hello", "\"Hello from nodemcu\"s");
-    // use HTTP Basic Authorization this is optional remove if not needed
-    //webSocket.setAuthorization("username", "password");
+    
+    webSocket.on("auth", authHandshake);
+    webSocket.on("connect", socket_Connected);
+    webSocket.begin(SERVER);
 }
 
 void loop() {
-    webSocket.loop();
+  
+  webSocket.loop();
 }
