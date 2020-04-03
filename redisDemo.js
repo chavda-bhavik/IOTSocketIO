@@ -22,12 +22,26 @@ var redis = require('redis');
 
 var client = redis.createClient();
 client.on('connect', () => {
-    client.lrange("mylist", 0, 2, (err, res) => {
-        console.log(res);
-    })
-    client.LLEN("mylist", (err,res) => {
-        console.log(`Length of mylist is ${res}`);
-    })
+    // SADD and SMEMBERS are used for maintaining array with key
+    // SADD set/add members while
+    // SMEMBERS retrive memeber values
+    // let obj = { clientid: "asdf23", data:'40'};
+    // client.SADD("abc:l1", obj.data);
+    // client.smembers("abc:l1", (err, res) => {
+    //     console.log(res);
+    // })
+    // client.set("test", "value");
+    // client.type("test", (err, res) => {
+    //     console.log(res);
+    // })
+
+
+    // client.lrange("mylist", 0, 2, (err, res) => {
+    //     console.log(res);
+    // })
+    // client.LLEN("mylist", (err,res) => {
+    //     console.log(`Length of mylist is ${res}`);
+    // })
     // console.log("Redis Client Connected");
     // client.set('test', 'value', redis.print);
     // client.get('test', (err, result) => {
@@ -48,7 +62,6 @@ client.on('connect', () => {
     // client.hgetall("key", (err, value) => {
     //     console.log(value);  // key will be "key" and value = {foo:"bar", hello:"world"}
     // })
-    
 })
 client.on('error', (err) => {
     console.log('Something went wrong '+err);

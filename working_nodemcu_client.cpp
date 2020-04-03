@@ -7,7 +7,7 @@ ESP8266WiFiMulti WiFiMulti;
 SocketIoClient webSocket;
 
 const char * CLIENTID = "\"bs4d20djs837\"";
-const char * SERVER = "b74def3d.ngrok.io";
+const char * SERVER = "3bea5b3c.ngrok.io";
 const char * SSID = "JOBS";
 const char * PASSWORD = "bhavik6666";
 boolean isHandshakDone = false;
@@ -41,6 +41,9 @@ void takeLDRData() {
     webSocket.emit("LDRData", "\"15\"");
   }
 }
+void disconnect() {
+   Serial.println("Socket.IO DisConnected!");
+}
 void setup() {
     Serial.begin(115200);
     Serial.setDebugOutput(true);
@@ -56,17 +59,19 @@ void setup() {
     while(WiFiMulti.run() != WL_CONNECTED) {
         delay(100);
     }
-    
     webSocket.on("auth", authHandshake);
     webSocket.on("connect", socket_Connected);
-    webSocket.on("disConnect", socket_DisConnected);
     webSocket.begin(SERVER);
+    webSocket.on("disconnect", socket_Connected);
 }
 
 void loop() {
   delay(1000);
+//  if(!webSocket.connected()) {
+//    Serial.printf("sorrry disconnected");
+  //}
   if(isHandshakDone==true){
-    takeLDRData();
+      takeLDRData();
   }
   webSocket.loop();
 }

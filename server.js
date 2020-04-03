@@ -1,13 +1,17 @@
 const 
     http = require("http"),
     express = require("express"),
-    socketio = require("socket.io")
+    socketio = require("socket.io"),
+    redis = require('redis');
+
+const redisServer = redis.createClient();
 
 const SERVER_PORT = 3000;
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
+let clientObj = {};
 
 // fire events
 io.on("connection", onNewWebsocketConnection);
@@ -15,35 +19,21 @@ io.on("connection", onNewWebsocketConnection);
 // start server
 server.listen(SERVER_PORT, () => console.info(`Listening on PORT ${SERVER_PORT}`));
 
-// setInterval(() => {
-//     for (const [client, sequenceNumber] of onlineClients.entries()) {
-//         client.emit("seq-num", sequenceNumber);
-//         onlineClients.set(client, sequenceNumber + 1);
-//     }
-// }, 1000);
-
-// let secondsSinceServerStarted = 0;
-// setInterval( () => {
-//     secondsSinceServerStarted++;
-//     io.emit("seconds", secondsSinceServerStarted);
-// }, 1000);
-
-
-function generateRandomNumber() {
-    return (Math.floor(Math.random() * 1000).toString());
-}
-
-function LDRDataHandler(socket) {
-    console.log(`LDRData come is `+socket);
+function LDRDataHandler(data, id) {
+    let obj = {
+        "clientId": id,
+        "data": data,
+    }
+    redisServer.publish("LDRData", JSON.stringify(obj));
 }
 function onNewWebsocketConnection(socket) {
     console.info(`Socket ${socket.id} has connected.`);
 
-    socket.on('join', function(data) {
-        console.log(`join with data ${data}`);
-        //socket.join(data)
-        socket.join(data);
-        io.sockets.in(data).emit("auth", "done");
+    socket.on('join', function(clientId) {
+        console.log(`Client join with client id ${clientId}`);
+        clientObj[socket.id] = clientId;
+        socket.join(clientId);
+        io.sockets.in(clientId).emit("auth", "done");
     })
 
     socket.on("disconnect", () => {
@@ -51,7 +41,7 @@ function onNewWebsocketConnection(socket) {
         console.info(`Socket ${socket.id} has disconnected.`);
     })
 
-    socket.on("LDRData", LDRDataHandler);
+    socket.on("LDRData", (data) => LDRDataHandler(data, clientObj[socket.id]));
 
     // socket.on("hello", helloMsg => console.info(`Socket ${socket.id} says: "${helloMsg}`));
     // socket.emit("welcome", `Welcome`);
