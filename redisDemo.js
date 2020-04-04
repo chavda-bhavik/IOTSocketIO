@@ -19,9 +19,30 @@ var redis = require('redis');
 // })
 
 // subscriber.subscribe("a channel");
+const normalLDR = 15;
+
+const processData = (data) => {
+    return new Promise( (resolve,reject) => {
+        let len = data.length;
+        if(parseInt(data[len-1]) > normalLDR && parseInt(data[len-2]) > normalLDR && parseInt(data[len-3]) > normalLDR) {
+            resolve();
+        }
+        reject();
+    })
+}
 
 var client = redis.createClient();
 client.on('connect', () => {
+    //client.rpush("LDR-bs4d20djs837", 18);
+    client.lrange("LDR-bs4d20djs837", 0, -1, (err, res) => {
+        if(err) console.log(err.message);
+        else {
+            processData(res)
+                .then( () => console.log("Make Action"))
+                .catch( (err) => console.log("No need for Action"))
+        }
+    })
+
     // SADD and SMEMBERS are used for maintaining array with key
     // SADD set/add members while
     // SMEMBERS retrive memeber values

@@ -7,7 +7,7 @@ ESP8266WiFiMulti WiFiMulti;
 SocketIoClient webSocket;
 
 const char * CLIENTID = "\"bs4d20djs837\"";
-const char * SERVER = "3bea5b3c.ngrok.io";
+const char * SERVER = "2d83b49d.ngrok.io";
 const char * SSID = "JOBS";
 const char * PASSWORD = "bhavik6666";
 boolean isHandshakDone = false;
@@ -15,29 +15,29 @@ int LDRDataCounter = 0;
 
 void authHandshake(const char * payload, size_t length) {
   Serial.printf("authHandshake: %s\n", payload);
-  //if(payload == "done") {
-    isHandshakDone = true;  
-  //}
+  if(!strcmp(payload, "verified")) {
+    isHandshakDone = true;
+  }
 }
 void socket_Connected(const char * payload, size_t length) {
   Serial.println("Socket.IO Connected!");
   webSocket.emit("join", CLIENTID);
 }
-void socket_DisConnected(const char * payload, size_t length) {
-  Serial.println("Socket.IO DisConnected!");
-  isHandshakDone = false;
+void take_LDRAction(const char * payload, size_t length) {
+  Serial.printf("LDRAction: %s\n", payload);
+  if(strcmp(payload,"HIGH") == 0) {
+    Serial.printf("LED made high");
+  }
 }
 void checkHeap() {
   Serial.print("heap: ");
   Serial.println(ESP.getFreeHeap());
 }
 void takeLDRData() {
-  Serial.println("LDR Data Took");
   LDRDataCounter++;
   if(LDRDataCounter==10) {
     checkHeap();
     LDRDataCounter=0;
-    Serial.println("LDR Data Emmited");
     webSocket.emit("LDRData", "\"15\"");
   }
 }
@@ -60,6 +60,7 @@ void setup() {
         delay(100);
     }
     webSocket.on("auth", authHandshake);
+    webSocket.on("LDRAction", take_LDRAction);
     webSocket.on("connect", socket_Connected);
     webSocket.begin(SERVER);
     webSocket.on("disconnect", socket_Connected);

@@ -5,6 +5,7 @@ const
     redis = require('redis');
 
 const redisServer = redis.createClient();
+const redisListener = redis.createClient();
 
 const SERVER_PORT = 3000;
 
@@ -24,16 +25,27 @@ function LDRDataHandler(data, id) {
         "clientId": id,
         "data": data,
     }
-    redisServer.publish("LDRData", JSON.stringify(obj));
+    if(id){ // only publish if id is there
+        redisServer.publish("LDRData", JSON.stringify(obj));
+    }
 }
+
+redisListener.on("message", (channel, msgObj) => {
+    let msg = JSON.parse(msgObj);
+    io.sockets.in(msg.clientId).emit("LDRAction", msg.action);
+    console.log(`LDRAction published for Client ${msg.clientId} is ${msg.action}`);
+})
+
 function onNewWebsocketConnection(socket) {
+    let id=0;
     console.info(`Socket ${socket.id} has connected.`);
 
     socket.on('join', function(clientId) {
         console.log(`Client join with client id ${clientId}`);
         clientObj[socket.id] = clientId;
+        id = clientId;
         socket.join(clientId);
-        io.sockets.in(clientId).emit("auth", "done");
+        io.sockets.in(clientId).emit("auth", "verified");
     })
 
     socket.on("disconnect", () => {
@@ -42,7 +54,7 @@ function onNewWebsocketConnection(socket) {
     })
 
     socket.on("LDRData", (data) => LDRDataHandler(data, clientObj[socket.id]));
-
+    redisListener.subscribe("LDRAction");
     // socket.on("hello", helloMsg => console.info(`Socket ${socket.id} says: "${helloMsg}`));
     // socket.emit("welcome", `Welcome`);
 }
