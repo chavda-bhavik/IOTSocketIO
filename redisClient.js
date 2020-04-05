@@ -12,12 +12,19 @@ var client = redis.createClient();
 //     publisher.publish("LDRData", JSON.stringify(obj));
 // })
 
-const normalLDR = 10;
+const normalLDR = 20;
+const maxDataToStore = 20;
 
-const processData = (data) => {
+const processData = (data, clientID) => {
     return new Promise( (resolve,reject) => {
         let len = data.length;
-        if(parseInt(data[len-1]) > normalLDR && parseInt(data[len-2]) > normalLDR && parseInt(data[len-3]) > normalLDR) {
+        
+        console.log(data[len-1], parseInt(data[len-2]), parseInt(data[len-3]));
+        if(parseInt(data[len-1]) < normalLDR && parseInt(data[len-2]) < normalLDR && parseInt(data[len-3]) < normalLDR) {
+            if(len > maxDataToStore) {
+                client.LTRIM("LDR-"+clientID, 0, 16);
+                //client.DEL();
+            }
             resolve();
         }
         reject();
@@ -41,12 +48,15 @@ subscriber.on("message", (channel, msgObj) => {
     client.lrange("LDR-"+data.clientId, 0, -1, (err, res) => {
         if(err) console.log(err.message);
         else { 
-            processData(res)
+            processData(res, data.clientId)
                 .then( () => {
                     publisher.publish("LDRAction", JSON.stringify({ clientId: data.clientId, action: "HIGH"}));
-                    console.log("published");
+                    console.log("Published High");
                 })
-                .catch( () => console.log("error"));
+                .catch( () => {
+                    publisher.publish("LDRAction", JSON.stringify({ clientId: data.clientId, action: "LOW"}));
+                    console.log("Published LOW");
+                });
         }
     })
 })
